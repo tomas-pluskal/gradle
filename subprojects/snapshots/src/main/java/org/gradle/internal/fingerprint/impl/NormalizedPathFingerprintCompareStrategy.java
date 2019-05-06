@@ -28,7 +28,6 @@ import org.gradle.internal.hash.Hasher;
 
 import java.util.Collection;
 import java.util.Collections;
-import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -38,13 +37,6 @@ import java.util.Map.Entry;
  */
 public class NormalizedPathFingerprintCompareStrategy extends AbstractFingerprintCompareStrategy {
     public static final FingerprintCompareStrategy INSTANCE = new NormalizedPathFingerprintCompareStrategy();
-
-    private static final Comparator<Entry<FileSystemLocationFingerprint, ?>> ENTRY_COMPARATOR = new Comparator<Entry<FileSystemLocationFingerprint, ?>>() {
-        @Override
-        public int compare(Entry<FileSystemLocationFingerprint, ?> o1, Entry<FileSystemLocationFingerprint, ?> o2) {
-            return o1.getKey().compareTo(o2.getKey());
-        }
-    };
 
     private NormalizedPathFingerprintCompareStrategy() {}
 
@@ -69,12 +61,9 @@ public class NormalizedPathFingerprintCompareStrategy extends AbstractFingerprin
         boolean shouldIncludeAdded
     ) {
         ListMultimap<FileSystemLocationFingerprint, FilePathWithType> missingPreviousFiles = getMissingPreviousFingerprints(previousFingerprints);
-        List<Entry<FileSystemLocationFingerprint, FilePathWithType>> missingPreviousEntries = Lists.newArrayList(missingPreviousFiles.entries());
-        Collections.sort(missingPreviousEntries, ENTRY_COMPARATOR);
-
         ListMultimap<String, FilePathWithType> addedFilesByNormalizedPath = getAddedFilesByNormalizedPath(currentFingerprints, missingPreviousFiles);
 
-        for (Entry<FileSystemLocationFingerprint, FilePathWithType> entry : missingPreviousEntries) {
+        for (Entry<FileSystemLocationFingerprint, FilePathWithType> entry : missingPreviousFiles.entries()) {
             if (wasModifiedOrRemovedAndMessageCountSaturated(visitor, propertyTitle, addedFilesByNormalizedPath, entry)) {
                 return false;
             }
@@ -94,7 +83,7 @@ public class NormalizedPathFingerprintCompareStrategy extends AbstractFingerprin
         Map<String, FileSystemLocationFingerprint> previousFingerprints
     ) {
         ListMultimap<FileSystemLocationFingerprint, FilePathWithType> results = MultimapBuilder
-            .hashKeys(previousFingerprints.size())
+            .treeKeys()
             .linkedListValues()
             .build();
         for (Entry<String, FileSystemLocationFingerprint> entry : previousFingerprints.entrySet()) {
