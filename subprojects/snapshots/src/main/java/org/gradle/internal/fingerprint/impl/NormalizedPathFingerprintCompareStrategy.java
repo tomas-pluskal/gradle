@@ -28,6 +28,7 @@ import org.gradle.internal.hash.Hasher;
 
 import java.util.Collection;
 import java.util.Collections;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -106,15 +107,28 @@ public class NormalizedPathFingerprintCompareStrategy extends AbstractFingerprin
         for (Entry<String, FileSystemLocationFingerprint> entry : currentFingerprints.entrySet()) {
             String currentAbsolutePath = entry.getKey();
             FileSystemLocationFingerprint currentFingerprint = entry.getValue();
-            List<FilePathWithType> previousFilesForFingerprint = missingPreviousFiles.get(currentFingerprint);
-            if (previousFilesForFingerprint.isEmpty()) {
+            boolean wasAccountedFor = accountFor(missingPreviousFiles, currentAbsolutePath, currentFingerprint);
+            if (!wasAccountedFor) {
                 FileType fingerprintType = currentFingerprint.getType();
                 results.put(currentFingerprint.getNormalizedPath(), new FilePathWithType(currentAbsolutePath, fingerprintType));
-            } else {
-                previousFilesForFingerprint.remove(0);
             }
         }
         return results;
+    }
+
+    private boolean accountFor(
+        ListMultimap<FileSystemLocationFingerprint, FilePathWithType> missingPreviousFingerprints,
+        String absolutePath,
+        FileSystemLocationFingerprint currentFingerprint
+    ) {
+        List<FilePathWithType> currentMissingFingerprints = missingPreviousFingerprints.get(currentFingerprint);
+        for (Iterator<FilePathWithType> iterator = currentMissingFingerprints.iterator(); iterator.hasNext(); ) {
+            if (absolutePath.equals(iterator.next().getAbsolutePath())) {
+                iterator.remove();
+                return true;
+            }
+        }
+        return false;
     }
 
     private boolean wasModifiedOrRemovedAndMessageCountSaturated(
