@@ -20,7 +20,6 @@ import com.google.common.base.Joiner;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 import org.gradle.api.Describable;
-import org.gradle.api.Transformer;
 import org.gradle.api.artifacts.ModuleIdentifier;
 import org.gradle.api.artifacts.component.ComponentSelector;
 import org.gradle.api.artifacts.component.ModuleComponentSelector;
@@ -60,12 +59,6 @@ import java.util.Set;
  * In this case {@link #resolved} will be `true` and {@link ModuleResolveState#getSelected()} will point to the selected component.
  */
 class SelectorState implements DependencyGraphSelector, ResolvableSelectorState {
-    private static final Transformer<ComponentSelectionDescriptorInternal, ComponentSelectionDescriptorInternal> IDENTITY = new Transformer<ComponentSelectionDescriptorInternal, ComponentSelectionDescriptorInternal>() {
-        @Override
-        public ComponentSelectionDescriptorInternal transform(ComponentSelectionDescriptorInternal componentSelectionDescriptorInternal) {
-            return componentSelectionDescriptorInternal;
-        }
-    };
     private final Long id;
     private final DependencyState dependencyState;
     private final DependencyMetadata firstSeenDependency;
@@ -105,10 +98,10 @@ class SelectorState implements DependencyGraphSelector, ResolvableSelectorState 
         this.versionConstraint = resolveVersionConstraint(firstSeenDependency.getSelector());
     }
 
-    public void use() {
+    public void use(boolean deferSelection) {
         outgoingEdgeCount++;
         if (outgoingEdgeCount == 1) {
-            targetModule.addSelector(this);
+            targetModule.addSelector(this, deferSelection);
         }
     }
 

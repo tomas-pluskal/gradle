@@ -194,6 +194,23 @@ class EdgeState implements DependencyGraphEdge {
                     targetNodes.add(node);
                 }
             }
+            if (targetNodes.isEmpty()) {
+                // There is a chance we could not attach target configurations previously
+                List<EdgeState> unattachedDependencies = targetComponent.getModule().getUnattachedDependencies();
+                if (!unattachedDependencies.isEmpty()) {
+                    for (EdgeState otherEdge : unattachedDependencies) {
+                        if (otherEdge != this && !otherEdge.isConstraint()) {
+                            otherEdge.attachToTargetConfigurations();
+                            break;
+                        }
+                    }
+                }
+                for (NodeState node : nodes) {
+                    if (node.isSelected()) {
+                        targetNodes.add(node);
+                    }
+                }
+            }
             return;
         }
 
@@ -232,7 +249,7 @@ class EdgeState implements DependencyGraphEdge {
             return transitiveExclusions;
         }
         ModuleExclusion edgeExclusions = resolveState.getModuleExclusions().excludeAny(ImmutableList.copyOf(excludes));
-        return resolveState.getModuleExclusions().intersect(edgeExclusions, transitiveExclusions);
+        return resolveState.getModuleExclusions().either(edgeExclusions, transitiveExclusions);
     }
 
     public ModuleExclusion getEdgeExclusions() {
